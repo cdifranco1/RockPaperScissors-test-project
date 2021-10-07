@@ -6,17 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract RockPaperScissors is Ownable, ReentrancyGuard {
-    // Modifier: playerHasMadeAChoice
-    modifier playerHasMadeAChoice(Player memory player) {
-        require(
-            player.choice != Choice.NOCHOICE,
-            string(
-                abi.encodePacked(player.name, " needs to make a choice first.")
-            )
-        );
-        _;
-    }
-
     // Modifier: playerIsActive
     modifier playerIsActive(address playerAddress) {
         require(players[playerAddress].active, "Player needs to be active.");
@@ -56,13 +45,27 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         _;
     }
 
-    // Modifier: notAnOpponent
-    modifier notAnOpponent(address opponent) {
+    // Modifier: notOpponent
+    modifier notOpponent(address opponent) {
         Opponent[] storage opponentList = players[msg.sender].opponents;
         for (uint256 i = 0; i < opponentList.length; i++) {
             if (opponent == opponentList[i].opponent)
                 revert("Already an opponent.");
         }
+        _;
+    }
+
+    // Modifier: isOpponent
+    modifier isOpponent(address player, address opponent) {
+        Opponent[] storage opponentList = players[player].opponents;
+        bool isOpponentFlag = false;
+        for (uint256 i = 0; i < opponentList.length; i++) {
+            if (opponent == opponentList[i].opponent) {
+                isOpponentFlag = true;
+                break;
+            }
+        }
+        if (!isOpponentFlag) revert("Not and opponent.");
         _;
     }
 
@@ -148,9 +151,9 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         view
         returns (Choice)
     {
-        for (uint256 i = 0; players[msg.sender].opponents.length; i++) {
-            if (opponent == players[msg.sender].opponents[i].opponent) {
-                return players[msg.sender].opponents[i].choice;
+        for (uint256 i = 0; i < players[player].opponents.length; i++) {
+            if (opponent == players[player].opponents[i].opponent) {
+                return players[player].opponents[i].choice;
             }
         }
         return Choice.NOCHOICE;
@@ -165,14 +168,18 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         checkBalance(bet)
         playerIsActive(msg.sender)
         playerIsActive(opponentAddress)
-        notAnOpponent(opponentAddress)
+        notOpponent(opponentAddress)
         notInBlacklist(opponentAddress)
     {
         Player storage player = players[msg.sender];
         Player storage opponent = players[opponentAddress];
         player.totalBet += bet;
         player.opponents.push(
-            Opponent({ choice: choice, bet: bet, opponent: opponentAddress })
+            Opponent({
+                choice: Choice(choice),
+                bet: bet,
+                opponent: opponentAddress
+            })
         );
         opponent.opponents.push(
             Opponent({ choice: Choice.NOCHOICE, bet: 0, opponent: msg.sender })
@@ -182,11 +189,11 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
     function getOpponentsAddresses()
         public
         view
-        playerIsEnrolled(msg.sender)
+        playerIsEnrolled
         returns (string memory)
     {
         Opponent[] storage opponents = players[msg.sender].opponents;
-        bytes memory opponentAddresses = new bytes();
+        bytes memory opponentAddresses;
         for (uint256 i = 0; i < opponents.length; i++) {
             opponentAddresses = abi.encodePacked(
                 opponentAddresses,
@@ -202,8 +209,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         view
         playerIsActive(player1)
         playerIsActive(player2)
-        playerHasMadeAChoice(players[player1])
-        playerHasMadeAChoice(players[player2])
+        isOpponent(player1, player2)
         returns (bool, address)
     {
         Choice player1Choice = _getChoice(player1, player2);
