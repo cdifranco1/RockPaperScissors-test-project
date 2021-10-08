@@ -6,31 +6,31 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract RockPaperScissors is Ownable, ReentrancyGuard {
-    // Modifier: playerIsActive
+    // Modifier: playerIsActive - Check if player is active
     modifier playerIsActive(address playerAddress) {
         require(players[playerAddress].active, "Player needs to be active.");
         _;
     }
 
-    // Modifier: playerIsInactive
+    // Modifier: playerIsInactive - Check if player is inactive
     modifier playerIsInactive(address playerAddress) {
         require(!players[playerAddress].active, "Player needs to be inactive.");
         _;
     }
 
-    // Modifier: playerIsEnrolled
+    // Modifier: playerIsEnrolled - Check if player is enrolled
     modifier playerIsEnrolled() {
         require(players[msg.sender].enrolled, "You are not enrolled.");
         _;
     }
 
-    // Modifier: playerIsNotEnrolled
+    // Modifier: playerIsNotEnrolled - Check if player is not enrolled
     modifier playerIsNotEnrolled() {
         require(!players[msg.sender].enrolled, "You are already enrolled.");
         _;
     }
 
-    // Modifier: notInBlacklist
+    // Modifier: notInBlacklist - Check if player is in the opponent's blacklist and vice-versa
     modifier notInBlacklist(address opponent) {
         address[] storage opponentBlacklist = players[opponent].blacklist;
         address[] storage yourBlacklist = players[msg.sender].blacklist;
@@ -45,7 +45,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         _;
     }
 
-    // Modifier: notOpponent
+    // Modifier: notOpponent - Check if <opponent> is not an opponent of player
     modifier notOpponent(address opponent) {
         Opponent[] storage opponentList = players[msg.sender].opponents;
         for (uint256 i = 0; i < opponentList.length; i++) {
@@ -55,7 +55,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         _;
     }
 
-    // Modifier: isOpponent
+    // Modifier: isOpponent - Check if <opponent> is an opponent of player
     modifier isOpponent(address player, address opponent) {
         Opponent[] storage opponentList = players[player].opponents;
         bool isOpponentFlag = false;
@@ -69,7 +69,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
         _;
     }
 
-    // Modifier: checkBalance
+    // Modifier: checkBalance - check player balance
     modifier checkBalance(uint256 newBet) {
         uint256 balance = players[msg.sender].balance;
         uint256 totalBet = players[msg.sender].totalBet;
@@ -81,7 +81,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
     // Token contract instance
     IERC20 public tokenContract;
 
-    // Define Choices enum
+    // Define Choice enum - Possible choices
     enum Choice {
         NOCHOICE,
         ROCK,
@@ -119,7 +119,6 @@ contract RockPaperScissors is Ownable, ReentrancyGuard {
     // Register new player
     function enroll(string memory name, uint256 numberOfTokens)
         public
-        nonReentrant
         playerIsNotEnrolled
     {
         Player storage newPlayer = players[msg.sender];
