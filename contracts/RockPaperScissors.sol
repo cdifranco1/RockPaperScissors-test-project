@@ -83,9 +83,16 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         _;
     }
 
-    /// @dev Player must be enrolled
-    modifier playerIsEnrolled() {
+    /// @dev Player must be enrolled (`msg.sender`)
+    modifier IsEnrolled() {
         require(players[msg.sender].enrolled, "You are not enrolled.");
+        _;
+    }
+
+    /// @dev Player must be enrolled
+    modifier playerIsEnrolled(address player) {
+        require(players[player].enrolled, 
+            string(abi.encodePacked("Player: ", _addressToString(player), " is not enrolled")));
         _;
     }
 
@@ -143,6 +150,8 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         _;
     }
 
+    /// @dev Validate player Nonce
+
     constructor(address tokenContractAddress) EIP712("RockPaperScissors", "1") {
         tokenContract = IERC20(tokenContractAddress);
     }
@@ -160,7 +169,10 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         uint256 player2Nonce,
         uint8 player2Choice,
         address player2Opponent,
-        uint256 bet) public 
+        uint256 bet) 
+            public
+            playerIsEnrolled
+            
         {
 
             // Get player 1 typed data hash
